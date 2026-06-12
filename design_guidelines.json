@@ -1,0 +1,81 @@
+{
+  "theme": "dark",
+  "archetype": "5 (Luxury) mixed with 4 (Swiss & High-Contrast) for Dashboard",
+  "typography": {
+    "heading_font": "Outfit",
+    "body_font": "Manrope",
+    "mono_font": "JetBrains Mono",
+    "scale": {
+      "h1": "text-4xl sm:text-5xl tracking-tight font-light",
+      "h2": "text-2xl sm:text-3xl tracking-tight font-medium",
+      "h3": "text-xl sm:text-2xl font-medium",
+      "widget_title": "text-xs uppercase tracking-[0.2em] font-bold text-zinc-400",
+      "body": "text-sm sm:text-base leading-relaxed text-zinc-300",
+      "metric_large": "text-6xl font-light tracking-tighter"
+    }
+  },
+  "colors": {
+    "background": "bg-[#09090b]",
+    "surface": "bg-[#18181b]",
+    "surface_hover": "bg-[#27272a]",
+    "border": "border-white/10",
+    "primary": "text-white",
+    "secondary": "text-zinc-400",
+    "brand_accent": "text-[#C5A059]",
+    "brand_bg": "bg-[#C5A059]",
+    "status": {
+      "success": "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+      "warning": "text-amber-400 bg-amber-400/10 border-amber-400/20",
+      "error": "text-rose-400 bg-rose-400/10 border-rose-400/20"
+    }
+  },
+  "layout": {
+    "type": "Dashboard / Control Room",
+    "navigation": "Collapsible left sidebar with thin borders. Top header with solid background and hard bottom border.",
+    "grid_system": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+    "spacing": "Generous internal padding for widgets. p-6 or p-8 inside cards.",
+    "radius": "rounded-xl for cards, rounded-md for interactive elements to keep it sharp"
+  },
+  "surfaces": {
+    "cards": "Flat background (bg-[#18181b]), 1px border (border-white/10), no shadow. Hover: border-white/20, slightly lifts (-translate-y-1).",
+    "buttons": "Primary: Solid brand accent (bg-[#C5A059] text-black hover:bg-[#D4AF37]). Secondary: bg-white/5 hover:bg-white/10 text-white border border-white/10."
+  },
+  "components": {
+    "sidebar": "Fixed left, w-64, border-r border-white/10. Contains navigation links. Use Lucide icons.",
+    "site_auditor": "Input field for URL with a glowing 'Tracing Beam' border effect on active state. Results shown in bento-grid widgets.",
+    "seo_progress": "Gamified checklist. Use Lucide check-circle. Streak counter with flame icon (amber accent).",
+    "schema_generator": "Form using Shadcn Input/Select. JSON-LD output displayed in a retro-terminal block (bg-black border-white/10 text-emerald-400 font-mono p-4).",
+    "location_builder": "Data table (Shadcn Table) listing towns. Status badges for generated pages.",
+    "competitor_snapshot": "Side-by-side comparison using a 2-column grid inside a card. Use red/green diff text for missing/present tags.",
+    "icons": "lucide-react (default for dashboard tools, scalable and clean)."
+  },
+  "motion": {
+    "hover": "transition-all duration-200 ease-out",
+    "page_load": "Framer motion staggered fade-in up for dashboard widgets."
+  },
+  "media": {
+    "images": [
+      {
+        "url": "https://images.unsplash.com/photo-1519741497674-611481863552?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzN8MHwxfHNlYXJjaHwxfHx3ZWRkaW5nJTIwcGhvdG9ncmFwaGVyfGVufDB8fHx8MTc4MTI2MjI5N3ww&ixlib=rb-4.1.0&q=85",
+        "description": "Groom beside bride holding bouquet flowers. Use as a background overlay (opacity-10) for the Location Page Builder 'Preview' or empty state.",
+        "category": "background_ambient"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1629756048377-09540f52caa1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzN8MHwxfHNlYXJjaHwyfHx3ZWRkaW5nJTIwcGhvdG9ncmFwaGVyfGVufDB8fHx8MTc4MTI2MjI5N3ww&ixlib=rb-4.1.0&q=85",
+        "description": "Man in black t-shirt holding DSLR. Use for 'Photographer Profile' in settings or 'Competitor Snapshot' placeholder.",
+        "category": "placeholder_profile"
+      },
+      {
+        "url": "https://images.pexels.com/photos/30335822/pexels-photo-30335822.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Bride and groom sunset. High contrast, elegant. Good for Auth/Login screen background if needed.",
+        "category": "hero_auth"
+      }
+    ]
+  },
+  "accessibility": {
+    "contrast": "Ensure all text against bg-[#18181b] meets APCA standards. Use text-white for primary, text-zinc-400 for secondary.",
+    "focus": "focus-visible:ring-2 focus-visible:ring-[#C5A059] focus-visible:ring-offset-2 focus-visible:ring-offset-[#09090b]",
+    "data_testid": "MANDATORY on all buttons, links, form inputs, and key informational elements. Use kebab-case, role-based."
+  },
+  "instructions_to_main_agent": "1. Install fonts from Google Fonts: Outfit (Headings), Manrope (Body), JetBrains Mono (Code/Numbers). 2. Set up Shadcn UI for dark mode only (remove light mode variables). 3. Build a collapsible left sidebar layout. 4. Implement Dashboard view with Bento grid for metrics (SEO Score, Streak, Audits). 5. Build the Site Auditor, Schema Generator, Location Builder, Meta Optimiser, and Keyword Checker as separate views routed from the sidebar. 6. The primary accent is a luxury gold (#C5A059). Use it sparingly for active states, primary buttons, and key metrics. 7. Do NOT use fake placeholder image URLs; use the media URLs provided here. 8. Ensure all cards have a 1px white/10 border and NO drop-shadows (flat technical look). 9. For the North Star metric (SEO Score), use text-6xl with JetBrains Mono or Outfit."
+}
