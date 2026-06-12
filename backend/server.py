@@ -626,21 +626,21 @@ async def delete_audit(audit_id: str):
 @api_router.post("/schema")
 async def schema_generator(req: SchemaRequest):
     """Generate LocalBusiness + Photographer JSON-LD."""
-    business: Dict[str, Any] = {
+    photographer: Dict[str, Any] = {
         "@context": "https://schema.org",
-        "@type": ["LocalBusiness", "Photograph"],
+        "@type": "ProfessionalService",
+        "additionalType": "https://schema.org/Photograph",
         "name": req.business_name,
         "url": req.website,
         "priceRange": req.price_range,
+        "image": req.image_url or req.website,
     }
     if req.description:
-        business["description"] = req.description
-    if req.image_url:
-        business["image"] = req.image_url
+        photographer["description"] = req.description
     if req.phone:
-        business["telephone"] = req.phone
+        photographer["telephone"] = req.phone
     if req.email:
-        business["email"] = req.email
+        photographer["email"] = req.email
 
     address: Dict[str, Any] = {"@type": "PostalAddress", "addressCountry": req.country}
     if req.street:
@@ -652,24 +652,12 @@ async def schema_generator(req: SchemaRequest):
     if req.postcode:
         address["postalCode"] = req.postcode
     if len(address) > 2:
-        business["address"] = address
+        photographer["address"] = address
 
     if req.areas_served:
-        business["areaServed"] = [
+        photographer["areaServed"] = [
             {"@type": "City", "name": a} for a in req.areas_served
         ]
-    business["@type"] = ["LocalBusiness", "ProfessionalService"]
-    # Replace with cleaner @type for photographer
-    photographer = {
-        "@context": "https://schema.org",
-        "@type": "ProfessionalService",
-        "additionalType": "https://schema.org/Photograph",
-        "name": req.business_name,
-        "url": req.website,
-        "priceRange": req.price_range,
-        "image": req.image_url or req.website,
-    }
-    photographer.update({k: v for k, v in business.items() if k not in {"@context", "@type", "name", "url", "priceRange", "image"}})
 
     if req.rating_value and req.review_count:
         photographer["aggregateRating"] = {
@@ -847,7 +835,7 @@ async def meta_optimise(req: MetaRequest):
     }
 
 
-STOPWORDS = set("""a an the and or but if while of for to with on in at by from as is are was were be been being this that these those it its i you he she they we them us our your their my his her not no do does did have has had can could should would shall will may might must about into over under up down out so very then than once just only also too more most some any all".split""".split())
+STOPWORDS = set("""a an the and or but if while of for to with on in at by from as is are was were be been being this that these those it its i you he she they we them us our your their my his her not no do does did have has had can could should would shall will may might must about into over under up down out so very then than once just only also too more most some any all""".split())
 
 
 @api_router.post("/keyword-density")
