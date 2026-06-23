@@ -1,0 +1,117 @@
+# ============================================================
+# SEO Command Centre · Dockge stack for TrueNAS Scale
+# ------------------------------------------------------------
+# Host       : TrueNAS Scale (Dockge)
+# Domain     : seo.weddingsbymark.uk
+# Host port  : 30045   →  container 80 (nginx serving React + proxying /api)
+# Source     : pulled from GitHub repo SEO_NEW at build time
+# Datasets   :
+#   /mnt/<pool>/apps/seo_2026/data                  → app working files / build cache
+#   /mnt/<pool>/apps_snaps_progs/seo_2026_saved_user → persistent user data (Mongo)
+# ------------------------------------------------------------
+# How to use in Dockge:
+#   1. Drop this file into a new Dockge stack (e.g. `seo-command-centre`).
+#   2. Copy the `.env.example` next to it into `.env` and fill in:
+#        - GITHUB_USER    (your GitHub username/org)
+#        - GIT_BRANCH     (usually `main`)
+#        - POOL_PATH      (e.g. `/mnt/tank` — wherever your datasets live)
+#   3. Make sure both TrueNAS datasets exist (Dockge / TrueNAS UI):
+#        ${POOL_PATH}/apps/seo_2026/data
+#        ${POOL_PATH}/apps_snaps_progs/seo_2026_saved_user
+#   4. Point your reverse proxy (NGINX Proxy Manager / Traefik / Caddy):
+#        seo.weddingsbymark.uk  →  <truenas-ip>:30045
+#      Issue a Let's Encrypt cert on the proxy. Done.
+# ============================================================
+
+version: "3.9"
+
+x-git-context: &git_context
+  # Docker Compose supports a git URL as build context — first build clones
+  # the repo into the build daemon, subsequent builds use cache. To force
+  # an update from GitHub run:  docker compose build --no-cache && docker compose up -d
+  context: "https://github.com/${GITHUB_USER}/SEO_NEW.git#${GIT_BRANCH:-main}"
+
+services:
+
+  # ----------------------------------------------------------
+  # MongoDB — stores audits + checklist progress + saved data
+  # ----------------------------------------------------------
+  mongo:
+    image: mongo:7
+    container_name: seo-mongo
+    restart: unless-stopped
+    command: ["mongod", "--quiet", "--logpath", "/dev/null"]
+    volumes:
+      # Persistent DB → second dataset (saved user data)
+      - "${POOL_PATH}/apps_snaps_progs/seo_2026_saved_user/mongo:/data/db"
+      - "${POOL_PATH}/apps_snaps_progs/seo_2026_saved_user/mongo-config:/data/configdb"
+    networks:
+      - seo-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ----------------------------------------------------------
+  # Backend — FastAPI, port 8001 internal only
+  # ----------------------------------------------------------
+  backend:
+    build:
+      <<: *git_context
+      dockerfile: deploy/Dockerfile.backend
+    image: seo-command-centre-backend:latest
+    container_name: seo-backend
+    restart: unless-stopped
+    environment:
+      MONGO_URL: "mongodb://mongo:27017"
+      DB_NAME: "seo_command_centre"
+      CORS_ORIGINS: "https://seo.weddingsbymark.uk"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      # Working files / exports / future user uploads
+      - "${POOL_PATH}/apps_snaps_progs/seo_2026_saved_user/backend:/app/backend/storage"
+      # Build cache / pip wheels (first dataset — app working area)
+      - "${POOL_PATH}/apps/seo_2026/data/pip-cache:/root/.cache/pip"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    networks:
+      - seo-net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8001/api/').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ----------------------------------------------------------
+  # Frontend — nginx serving React build, also proxies /api/*
+  # Exposed on TrueNAS host port 30045
+  # ----------------------------------------------------------
+  frontend:
+    build:
+      <<: *git_context
+      dockerfile: deploy/Dockerfile.frontend
+      args:
+        # Same hostname — nginx in this container proxies /api/* to backend
+        REACT_APP_BACKEND_URL: "https://seo.weddingsbymark.uk"
+    image: seo-command-centre-frontend:latest
+    container_name: seo-frontend
+    restart: unless-stopped
+    ports:
+      - "30045:80"
+    volumes:
+      # Yarn / node build cache lives in the "app" dataset
+      - "${POOL_PATH}/apps/seo_2026/data/yarn-cache:/usr/local/share/.cache/yarn"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - seo-net
+
+networks:
+  seo-net:
+    driver: bridge
+    name: seo-net
