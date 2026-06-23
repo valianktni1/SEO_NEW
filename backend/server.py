@@ -128,6 +128,217 @@ SEO_TASKS = [
 
 
 # ---------------------------------------------------------------------------
+# Business profile for "god-mode" schema generation
+# ---------------------------------------------------------------------------
+BUSINESS = {
+    "name": "Weddings By Mark",
+    "legal_name": "Weddings By Mark",
+    "website": "https://perfectweddingsbymark.uk",
+    "logo": "https://perfectweddingsbymark.uk/wp-content/uploads/2025/12/New-Logo-Black.png",
+    "image": "https://perfectweddingsbymark.uk/wp-content/uploads/2025/12/New-Logo-Black.png",
+    "description_short": (
+        "Manchester, Cheshire & Staffordshire Wedding Photographer specializing in "
+        "natural, unposed photography with a 3-5 day gallery turnaround."
+    ),
+    "description_long": (
+        "Award-winning wedding photographer with 19 years experience. Providing "
+        "natural, unposed wedding photography in Manchester, Cheshire, Staffordshire, "
+        "North Wales, Yorkshire, Derbyshire, and Stoke-on-Trent."
+    ),
+    "telephone": "+447712117357",
+    "email": "",
+    "price_range": "£475 - £1699",
+    "address": {
+        "streetAddress": "Ashurst Road",
+        "addressLocality": "Manchester",
+        "postalCode": "M22 5AX",
+        "addressCountry": "GB",
+    },
+    "geo": {"latitude": 53.3769, "longitude": -2.2515},
+    "opening_hours": {
+        "days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+        "opens": "07:30",
+        "closes": "21:30",
+    },
+    "same_as": [
+        "https://www.facebook.com/weddingsbymark.uk",
+        "https://www.instagram.com/weddingsbymark.uk",
+        "https://share.google/e6qHoucotiPpnGCRZ",
+    ],
+    "areas_served_default": [
+        "Manchester", "Cheshire", "Staffordshire", "Derbyshire",
+        "Stoke-on-Trent", "North Wales", "Lancashire", "Yorkshire",
+    ],
+    "rating": {"value": "5", "best": "5", "count": "167"},
+    "awards": [
+        "Winner - County Brides North West Wedding Photographer of the Year 2026",
+        "Winner - SME News Elite Business Awards Wedding Photographer of the Year 2025 (North West)",
+        "Winner - Lux Life Global Wedding Awards 2024: Most Trusted Wedding Photographer (Manchester)",
+        "Winner - CorporateLiveWire Innovation & Excellence Awards: Wedding Photographer of the Year 2024",
+        "Winner - Prestige Awards Wedding Photographer of the Year (Manchester & North West) 2023/24",
+        "Winner - SME News UK Enterprise Awards 2023: Most Innovative Wedding Photographer",
+    ],
+    "featured_review": {
+        "author": "Nicola & Gary",
+        "rating": "5",
+        "best": "5",
+        "body": (
+            "Mark photographed our wedding at the Grosvenor Pulford Hotel & Spa. "
+            "His natural, unposed style was exactly what we wanted, and receiving "
+            "our gallery in just 3-5 days was incredible."
+        ),
+    },
+}
+
+
+def build_god_schema(
+    page_url: str,
+    page_title: str,
+    page_description: str,
+    *,
+    town: Optional[str] = None,
+    region: Optional[str] = None,
+    extra_areas: Optional[List[str]] = None,
+    breadcrumbs: Optional[List[Dict[str, str]]] = None,
+    is_service_page: bool = False,
+) -> Dict[str, Any]:
+    """Build a rich @graph schema like the homepage uses.
+    Includes WebSite, ProfessionalService, WebPage, optional Service & BreadcrumbList.
+    """
+    site = BUSINESS["website"].rstrip("/")
+    business_id = f"{site}/#localbusiness"
+    website_id = f"{site}/#website"
+    page_id = f"{page_url}/#webpage"
+
+    areas = list(extra_areas or BUSINESS["areas_served_default"])
+    if town and town not in areas:
+        areas = [town] + areas
+
+    website_node = {
+        "@type": "WebSite",
+        "@id": website_id,
+        "url": site + "/",
+        "name": BUSINESS["name"],
+        "description": BUSINESS["description_short"],
+        "potentialAction": [{
+            "@type": "SearchAction",
+            "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": f"{site}/?s={{search_term_string}}",
+            },
+            "query-input": "required name=search_term_string",
+        }],
+    }
+
+    business_node: Dict[str, Any] = {
+        "@type": "ProfessionalService",
+        "@id": business_id,
+        "name": BUSINESS["name"],
+        "url": site + "/",
+        "logo": {"@type": "ImageObject", "url": BUSINESS["logo"]},
+        "image": {"@type": "ImageObject", "url": BUSINESS["image"]},
+        "description": BUSINESS["description_long"],
+        "telephone": BUSINESS["telephone"],
+        "priceRange": BUSINESS["price_range"],
+        "address": {
+            "@type": "PostalAddress",
+            **BUSINESS["address"],
+        },
+        "geo": {
+            "@type": "GeoCoordinates",
+            **BUSINESS["geo"],
+        },
+        "openingHoursSpecification": [{
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": BUSINESS["opening_hours"]["days"],
+            "opens": BUSINESS["opening_hours"]["opens"],
+            "closes": BUSINESS["opening_hours"]["closes"],
+        }],
+        "sameAs": BUSINESS["same_as"],
+        "areaServed": [
+            {"@type": "AdministrativeArea", "name": a} for a in areas
+        ],
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": BUSINESS["rating"]["value"],
+            "bestRating": BUSINESS["rating"]["best"],
+            "reviewCount": BUSINESS["rating"]["count"],
+        },
+        "award": BUSINESS["awards"],
+        "review": [{
+            "@type": "Review",
+            "author": {"@type": "Person", "name": BUSINESS["featured_review"]["author"]},
+            "reviewRating": {
+                "@type": "Rating",
+                "ratingValue": BUSINESS["featured_review"]["rating"],
+                "bestRating": BUSINESS["featured_review"]["best"],
+            },
+            "reviewBody": BUSINESS["featured_review"]["body"],
+        }],
+    }
+
+    webpage_node: Dict[str, Any] = {
+        "@type": "WebPage",
+        "@id": page_id,
+        "url": page_url,
+        "name": page_title,
+        "isPartOf": {"@id": website_id},
+        "about": {"@id": business_id},
+        "description": page_description,
+    }
+
+    graph = [website_node, business_node, webpage_node]
+
+    if is_service_page and town:
+        service_node = {
+            "@type": "Service",
+            "@id": f"{page_url}/#service",
+            "name": f"Wedding Photography in {town}",
+            "serviceType": "Wedding Photography",
+            "provider": {"@id": business_id},
+            "areaServed": {
+                "@type": "City",
+                "name": town,
+                "containedInPlace": {"@type": "AdministrativeArea", "name": region}
+                if region else None,
+            },
+            "description": (
+                f"Natural, unposed wedding photography in {town}"
+                + (f", {region}." if region else ".")
+                + " Award-winning, 19 years experience, 3-5 day gallery turnaround."
+            ),
+            "offers": {
+                "@type": "AggregateOffer",
+                "priceCurrency": "GBP",
+                "lowPrice": "475",
+                "highPrice": "1699",
+                "offerCount": "5",
+            },
+        }
+        # strip None values from areaServed.containedInPlace
+        if service_node["areaServed"]["containedInPlace"] is None:
+            service_node["areaServed"].pop("containedInPlace")
+        graph.append(service_node)
+
+    if breadcrumbs:
+        graph.append({
+            "@type": "BreadcrumbList",
+            "@id": f"{page_url}/#breadcrumbs",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": i + 1,
+                    "name": b["name"],
+                    "item": b.get("url"),
+                }
+                for i, b in enumerate(breadcrumbs)
+            ],
+        })
+
+    return {"@context": "https://schema.org", "@graph": graph}
+
+
+# ---------------------------------------------------------------------------
 # Models
 # ---------------------------------------------------------------------------
 class AuditRequest(BaseModel):
@@ -643,50 +854,55 @@ async def delete_audit(audit_id: str):
 
 @api_router.post("/schema")
 async def schema_generator(req: SchemaRequest):
-    """Generate LocalBusiness + Photographer JSON-LD."""
-    photographer: Dict[str, Any] = {
-        "@context": "https://schema.org",
-        "@type": "ProfessionalService",
-        "additionalType": "https://schema.org/Photograph",
-        "name": req.business_name,
-        "url": req.website,
-        "priceRange": req.price_range,
-        "image": req.image_url or req.website,
-    }
-    if req.description:
-        photographer["description"] = req.description
-    if req.phone:
-        photographer["telephone"] = req.phone
-    if req.email:
-        photographer["email"] = req.email
+    """Generate full god-mode @graph schema (WebSite + ProfessionalService + WebPage)."""
+    schema = build_god_schema(
+        page_url=req.website.rstrip("/") + "/",
+        page_title=req.business_name,
+        page_description=req.description or BUSINESS["description_short"],
+        extra_areas=req.areas_served or None,
+    )
 
-    address: Dict[str, Any] = {"@type": "PostalAddress", "addressCountry": req.country}
-    if req.street:
-        address["streetAddress"] = req.street
-    if req.city:
-        address["addressLocality"] = req.city
-    if req.region:
-        address["addressRegion"] = req.region
-    if req.postcode:
-        address["postalCode"] = req.postcode
-    if len(address) > 2:
-        photographer["address"] = address
-
-    if req.areas_served:
-        photographer["areaServed"] = [
-            {"@type": "City", "name": a} for a in req.areas_served
-        ]
-
-    if req.rating_value and req.review_count:
-        photographer["aggregateRating"] = {
-            "@type": "AggregateRating",
-            "ratingValue": req.rating_value,
-            "reviewCount": req.review_count,
-        }
+    # Allow per-request overrides on the business node (so the form values still matter)
+    biz = next((n for n in schema["@graph"] if n.get("@type") == "ProfessionalService"), None)
+    if biz:
+        if req.business_name:
+            biz["name"] = req.business_name
+        if req.website:
+            biz["url"] = req.website.rstrip("/") + "/"
+        if req.description:
+            biz["description"] = req.description
+        if req.phone:
+            biz["telephone"] = req.phone
+        if req.email:
+            biz["email"] = req.email
+        if req.image_url:
+            biz["image"] = {"@type": "ImageObject", "url": req.image_url}
+        if req.price_range:
+            biz["priceRange"] = req.price_range
+        # Address overrides
+        addr = {"@type": "PostalAddress", "addressCountry": req.country}
+        if req.street:
+            addr["streetAddress"] = req.street
+        if req.city:
+            addr["addressLocality"] = req.city
+        if req.region:
+            addr["addressRegion"] = req.region
+        if req.postcode:
+            addr["postalCode"] = req.postcode
+        if len(addr) > 2:
+            biz["address"] = addr
+        # Rating override
+        if req.rating_value and req.review_count:
+            biz["aggregateRating"] = {
+                "@type": "AggregateRating",
+                "ratingValue": req.rating_value,
+                "bestRating": "5",
+                "reviewCount": req.review_count,
+            }
 
     return {
-        "json_ld": photographer,
-        "script_tag": f'<script type="application/ld+json">\n{json.dumps(photographer, indent=2)}\n</script>',
+        "json_ld": schema,
+        "script_tag": f'<script type="application/ld+json">\n{json.dumps(schema, indent=2)}\n</script>',
     }
 
 
@@ -760,16 +976,21 @@ Yes — drop Mark a message and he'll send over recent full-day galleries from w
 If you're getting married in **{t}** or anywhere across **{r}**, {req.photographer_name} would love to hear about your day. [Enquire now]({site}/contact) and let's start the story.
 """
 
-    # Build per-page schema (LocalBusiness with areaServed)
-    schema = {
-        "@context": "https://schema.org",
-        "@type": "ProfessionalService",
-        "name": n,
-        "url": f"{site}/{slug}",
-        "areaServed": {"@type": "City", "name": t, "containedInPlace": {"@type": "AdministrativeArea", "name": r}},
-        "serviceType": "Wedding Photography",
-        "priceRange": "££",
-    }
+    # Build full god-mode @graph schema for this location page
+    page_url = f"{site.rstrip('/')}/{slug}"
+    schema = build_god_schema(
+        page_url=page_url,
+        page_title=title,
+        page_description=meta,
+        town=t,
+        region=r,
+        breadcrumbs=[
+            {"name": "Home", "url": f"{site.rstrip('/')}/"},
+            {"name": "Locations", "url": f"{site.rstrip('/')}/locations"},
+            {"name": t, "url": page_url},
+        ],
+        is_service_page=True,
+    )
 
     return {
         "town": t,
