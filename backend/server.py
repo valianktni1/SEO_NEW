@@ -199,7 +199,8 @@ class TaskToggle(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 USER_AGENT = (
-    "Mozilla/5.0 (compatible; SEOCommandCentre/1.0; +https://perfectweddingsbymark.uk)"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
 
 
@@ -215,8 +216,17 @@ def normalise_url(url: str) -> str:
 async def fetch(url: str) -> Dict[str, Any]:
     """Fetch a URL and return raw + parsed data."""
     url = normalise_url(url)
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-GB,en;q=0.9",
+        # Only request encodings httpx natively supports (no brotli to avoid empty parsing)
+        "Accept-Encoding": "gzip, deflate",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+    }
     async with httpx.AsyncClient(
-        timeout=20.0, follow_redirects=True, headers={"User-Agent": USER_AGENT}
+        timeout=20.0, follow_redirects=True, headers=headers
     ) as cx:
         r = await cx.get(url)
         html = r.text
@@ -407,11 +417,19 @@ def analyse(data: Dict[str, Any]) -> Dict[str, Any]:
             pass
 
     types_str = ", ".join(str(t) for t in types_found) if types_found else "none"
-    if any("Photographer" in str(t) or "LocalBusiness" in str(t) for t in types_found):
+    BUSINESS_TYPES = {
+        "LocalBusiness", "ProfessionalService", "Photograph", "Photographer",
+        "Organization", "Corporation", "Person", "Store",
+    }
+    has_business = any(
+        any(bt.lower() in str(t).lower() for bt in BUSINESS_TYPES)
+        for t in types_found
+    )
+    if has_business:
         add("Structured data (JSON-LD)", "pass", f"Found: {types_str}", 6, 6, "On-page")
     elif types_found:
         add("Structured data (JSON-LD)", "warn", f"Found {types_str} — add LocalBusiness/Photographer", 3, 6, "On-page")
-        recs.append("Add LocalBusiness + Photographer schema (use the Schema Generator).")
+        recs.append("Add LocalBusiness or ProfessionalService schema (use the Schema Generator).")
     else:
         add("Structured data (JSON-LD)", "fail", "No JSON-LD schema detected", 0, 6, "On-page")
         recs.append("Add LocalBusiness + Photographer JSON-LD schema — biggest single fix for local SEO.")
